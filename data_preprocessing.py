@@ -4,40 +4,100 @@
 # ==========================================================
 
 import pandas as pd
+import joblib
 from sklearn.preprocessing import LabelEncoder
 
-
-print("="*70)
+print("=" * 70)
 print("AI SMART PROPERTY ADVISOR")
-print("DATA PREPROCESSING")
-print("="*70)
+print("STEP 1 : DATA PREPROCESSING")
+print("=" * 70)
 
 
 # ----------------------------------------------------------
 # LOAD DATASET
 # ----------------------------------------------------------
 
-df = pd.read_csv(
-    "../data/Enhanced_Smart_House_Price_Dataset.csv"
-)
-
+df = pd.read_csv("../data/Enhanced_Smart_House_Price_Dataset_New.csv")
 
 print("\nDataset Loaded Successfully")
-
-print("Rows :", df.shape[0])
+print("Rows    :", df.shape[0])
 print("Columns :", df.shape[1])
+
+
+# ----------------------------------------------------------
+# DATASET OVERVIEW
+# ----------------------------------------------------------
+
+print("\nFirst 5 Records")
+print(df.head())
+
+
+print("\nDataset Information")
+df.info()
+
+
+print("\nMissing Values")
+print(df.isnull().sum())
+
+
+print("\nDuplicate Rows :", df.duplicated().sum())
+
+
+# ----------------------------------------------------------
+# REMOVE DUPLICATES
+# ----------------------------------------------------------
+
+df.drop_duplicates(inplace=True)
+
+# Reset index after duplicate removal
+df.reset_index(drop=True, inplace=True)
+
+print("\nDuplicate Rows Removed")
+print("Current Shape :", df.shape)
+
+
+
+# ----------------------------------------------------------
+# CHECK AVAILABLE COLUMNS
+# ----------------------------------------------------------
+
+print("\nAvailable Columns:")
+print(df.columns.tolist())
+
+
+
+# ----------------------------------------------------------
+# HANDLE MISSING VALUES
+# ----------------------------------------------------------
+
+print("\nHandling Missing Values...")
+
+for column in df.columns:
+
+    if df[column].dtype == "object":
+
+        df[column].fillna(
+            df[column].mode()[0],
+            inplace=True
+        )
+
+    else:
+
+        df[column].fillna(
+            df[column].median(),
+            inplace=True
+        )
+
+
+print("Missing Values Handled Successfully")
+
 
 
 # ----------------------------------------------------------
 # FEATURE ENGINEERING
 # ----------------------------------------------------------
 
-CURRENT_YEAR = 2026
-
-
-# Calculate House Age
-
-df["HouseAge"] = CURRENT_YEAR - df["YearBuilt"]
+print("\nPerforming Feature Engineering...")
 
 
 # House Size Category
@@ -60,77 +120,121 @@ df["HouseSizeCategory"] = pd.cut(
 )
 
 
+
 # Family Suitability Score
 
 df["FamilySuitabilityScore"] = (
     df["Bedrooms"] * 3 +
-    df["Bathrooms"] * 2
+    df["Bathrooms"] * 2 +
+    df["ParkingSpaces"] * 2 +
+    df["Garden"] * 2
 )
 
 
-print("\nFeature Engineering Completed")
+
+# Property Age
+
+if "YearBuilt" in df.columns:
+
+    current_year = 2026
+
+    df["HouseAge"] = (
+        current_year - df["YearBuilt"]
+    )
 
 
-# ----------------------------------------------------------
-# REMOVE DATA LEAKAGE FEATURES
-# ----------------------------------------------------------
+print("Feature Engineering Completed")
 
-remove_columns = [
-    "PriceCategory",
-    "PricePerSqFt",
-    "InvestmentScore",
-    "ValueForMoneyScore",
-    "NeighborhoodAveragePrice"
-]
-
-
-for column in remove_columns:
-
-    if column in df.columns:
-        df.drop(
-            column,
-            axis=1,
-            inplace=True
-        )
-
-
-print("Unwanted Features Removed")
 
 
 # ----------------------------------------------------------
-# ENCODE CATEGORICAL DATA
+# LABEL ENCODING
 # ----------------------------------------------------------
+
+print("\nEncoding Categorical Columns...")
+
 
 categorical_columns = df.select_dtypes(
-    include=["object","category"]
+    include=["object", "category"]
 ).columns
+
+
+label_encoders = {}
 
 
 for column in categorical_columns:
 
-    encoder = LabelEncoder()
+    le = LabelEncoder()
 
-    df[column] = encoder.fit_transform(
+    df[column] = le.fit_transform(
         df[column].astype(str)
     )
 
+    label_encoders[column] = le
 
-print("Label Encoding Completed")
+
+
+print("Categorical Encoding Completed")
+
 
 
 # ----------------------------------------------------------
-# SAVE PROCESSED DATA
+# FINAL DATASET CHECK
 # ----------------------------------------------------------
+
+print("\nFinal Dataset Shape :", df.shape)
+
+
+print("\nData Types")
+print(df.dtypes)
+
+
+print("\nStatistical Summary")
+print(df.describe())
+
+
+
+# ----------------------------------------------------------
+# SAVE PROCESSED DATASET
+# ----------------------------------------------------------
+
+output_path = "../data/processed_property_data_New.csv"
+
 
 df.to_csv(
-    "../data/processed_property_data.csv",
+    output_path,
     index=False
 )
 
 
 print("\nProcessed Dataset Saved Successfully")
+print("Saved To :", output_path)
 
 
-print("="*70)
-print("STEP 1 COMPLETED")
-print("="*70)
+
+# ----------------------------------------------------------
+# SAVE LABEL ENCODERS
+# ----------------------------------------------------------
+
+joblib.dump(
+    label_encoders,
+    "../models/label_encoders.pkl"
+)
+
+
+print("Label Encoders Saved Successfully")
+
+
+
+# ----------------------------------------------------------
+# DISPLAY PROCESSED DATA
+# ----------------------------------------------------------
+
+print("\nFirst 5 Processed Records")
+print(df.head())
+
+
+
+print("=" * 70)
+print("STEP 1 COMPLETED SUCCESSFULLY")
+print("=" * 70)

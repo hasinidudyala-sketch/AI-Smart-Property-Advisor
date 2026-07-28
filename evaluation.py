@@ -1,55 +1,27 @@
 # ============================================================
 # AI SMART PROPERTY ADVISOR
-# STEP 4 - MODEL EVALUATION
+# STEP 5 - FEATURE IMPORTANCE ANALYSIS
 # ============================================================
 
 import pandas as pd
 import joblib
-
-from sklearn.metrics import (
-    r2_score,
-    mean_absolute_error,
-    mean_squared_error
-)
-
-import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 
 print("="*70)
-print("STEP 4 : MODEL EVALUATION")
+print("AI SMART PROPERTY ADVISOR")
+print("STEP 5 : FEATURE IMPORTANCE ANALYSIS")
 print("="*70)
 
 
-# ============================================================
-# LOAD TEST DATA
-# ============================================================
-
-X_test = pd.read_csv(
-    "data/X_test.csv"
-)
-
-y_test = pd.read_csv(
-    "data/y_test.csv"
-)
-
-
-# Convert target dataframe to series
-
-y_test = y_test["Price"]
-
-
-print("\nTest Data Loaded")
-print("X_test :", X_test.shape)
-print("y_test :", y_test.shape)
-
-
 
 # ============================================================
-# LOAD TRAINED MODEL
+# LOAD MODEL
 # ============================================================
 
 model = joblib.load(
-    "models/best_model.pkl"
+    "../models/best_model.pkl"
 )
 
 
@@ -57,88 +29,211 @@ print("\nModel Loaded Successfully")
 
 
 
-# ============================================================
-# PREDICTION
-# ============================================================
+# Load model name
 
-y_pred = model.predict(
-    X_test
-)
+try:
 
-
-
-# ============================================================
-# EVALUATION METRICS
-# ============================================================
-
-r2 = r2_score(
-    y_test,
-    y_pred
-)
-
-
-mae = mean_absolute_error(
-    y_test,
-    y_pred
-)
-
-
-rmse = np.sqrt(
-    mean_squared_error(
-        y_test,
-        y_pred
+    model_name = joblib.load(
+        "../models/best_model_name.pkl"
     )
+
+    print("Best Model :", model_name)
+
+except:
+
+    model_name = "Gradient Boosting"
+
+
+
+
+# ============================================================
+# LOAD FEATURE DATA
+# ============================================================
+
+
+X_train = pd.read_csv(
+    "../data/X_train.csv"
 )
 
 
-
-# ============================================================
-# RESULTS
-# ============================================================
-
-print("\n"+"="*70)
-print("MODEL PERFORMANCE")
-print("="*70)
-
-
-print(f"R² Score : {r2:.4f}")
-
-print(f"MAE      : {mae:.2f}")
-
-print(f"RMSE     : {rmse:.2f}")
+feature_names = X_train.columns
 
 
 
 # ============================================================
-# SAVE RESULTS
+# EXTRACT FEATURE IMPORTANCE
 # ============================================================
 
-results = pd.DataFrame({
 
-    "Metric":[
-        "R2 Score",
-        "MAE",
-        "RMSE"
-    ],
+if hasattr(model, "feature_importances_"):
 
-    "Value":[
-        r2,
-        mae,
-        rmse
-    ]
+    importance = model.feature_importances_
+
+
+else:
+
+    print("Feature importance not available")
+
+    exit()
+
+
+
+# ============================================================
+# CREATE FEATURE IMPORTANCE DATAFRAME
+# ============================================================
+
+
+feature_df = pd.DataFrame({
+
+    "Feature": feature_names,
+
+    "Importance": importance
 
 })
 
 
-results.to_csv(
-    "data/evaluation_results.csv",
-    index=False
+feature_df = feature_df.sort_values(
+
+    by="Importance",
+
+    ascending=False
+
 )
 
 
 
-print("\nEvaluation Results Saved")
+print("\nFEATURE IMPORTANCE TABLE")
 
 print("="*70)
-print("STEP 4 COMPLETED")
+
+print(feature_df)
+
+
+
+# ============================================================
+# TOP 10 FEATURES
+# ============================================================
+
+
+top10 = feature_df.head(10)
+
+
+
+print("\nTOP 10 IMPORTANT FEATURES")
+
+print("="*70)
+
+print(top10)
+
+
+
+# ============================================================
+# SAVE FEATURE IMPORTANCE
+# ============================================================
+
+
+feature_df.to_csv(
+
+    "../data/feature_importance.csv",
+
+    index=False
+
+)
+
+
+
+print("\nFeature Importance Saved Successfully")
+
+
+
+# ============================================================
+# VISUALIZATION
+# ============================================================
+
+
+plt.figure(
+
+    figsize=(10,6)
+
+)
+
+
+plt.bar(
+
+    top10["Feature"],
+
+    top10["Importance"]
+
+)
+
+
+
+plt.xticks(
+
+    rotation=45,
+
+    ha="right"
+
+)
+
+
+
+plt.xlabel(
+
+    "Features"
+
+)
+
+
+
+plt.ylabel(
+
+    "Importance Score"
+
+)
+
+
+
+plt.title(
+
+    f"{model_name} Feature Importance"
+
+)
+
+
+
+plt.grid(
+
+    axis="y"
+
+)
+
+
+
+plt.tight_layout()
+
+
+plt.show()
+
+
+
+# ============================================================
+# FINAL STATUS
+# ============================================================
+
+
+print("\n"+"="*70)
+
+print("STEP 5 COMPLETED SUCCESSFULLY")
+
+print("="*70)
+
+print("✓ Feature Importance Calculated")
+
+print("✓ Top 10 Features Identified")
+
+print("✓ Feature Importance CSV Saved")
+
+print("✓ Graph Generated")
+
 print("="*70)

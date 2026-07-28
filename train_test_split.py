@@ -4,320 +4,163 @@
 # ============================================================
 
 import pandas as pd
-import os
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+import os
 
-
-print("="*70)
+print("=" * 70)
+print("AI SMART PROPERTY ADVISOR")
 print("STEP 2 : FEATURE ENGINEERING + TRAIN TEST SPLIT")
-print("="*70)
-
+print("=" * 70)
 
 # ============================================================
 # LOAD DATASET
 # ============================================================
 
-dataset_path = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\data\Enhanced_Smart_House_Price_Dataset.csv"
-
+dataset_path = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\data\processed_property_data_New.csv"
 
 df = pd.read_csv(dataset_path)
 
-
 print("\nDataset Loaded Successfully")
-print("Dataset Shape :", df.shape)
-
-
+print("Rows    :", df.shape[0])
+print("Columns :", df.shape[1])
 
 # ============================================================
 # FEATURE ENGINEERING
 # ============================================================
 
-CURRENT_YEAR = 2026
-
-
-# House Age
-
-df["HouseAge"] = (
-    CURRENT_YEAR - df["YearBuilt"]
-)
-
-
+print("\nPerforming Feature Engineering...")
 
 # House Size Category
-
 df["HouseSizeCategory"] = pd.cut(
-
     df["SquareFeet"],
-
-    bins=[
-        0,
-        1000,
-        2000,
-        3500,
-        float("inf")
-    ],
-
-    labels=[
-        "Small",
-        "Medium",
-        "Large",
-        "Luxury"
-    ]
-
+    bins=[0, 1000, 2000, 3500, float("inf")],
+    labels=["Small", "Medium", "Large", "Luxury"]
 )
-
-
 
 # Family Suitability Score
-
 df["FamilySuitabilityScore"] = (
-
     df["Bedrooms"] * 3 +
-
-    df["Bathrooms"] * 2
-
+    df["Bathrooms"] * 2 +
+    df["ParkingSpaces"] * 2 +
+    df["Garden"] * 2
 )
 
+# Bedroom Density
+df["BedroomDensity"] = (
+    df["Bedrooms"] / df["SquareFeet"]
+).round(4)
 
+# Bathroom Density
+df["BathroomDensity"] = (
+    df["Bathrooms"] / df["SquareFeet"]
+).round(4)
 
-# Property Score
-
-df["PropertyScore"] = (
-
-    df["SquareFeet"]/100
-
-    +
-
-    df["Bedrooms"]*10
-
-    +
-
-    df["Bathrooms"]*8
-
-    -
-
-    df["HouseAge"]*0.5
-
+# Age Category
+df["AgeCategory"] = pd.cut(
+    df["HouseAge"],
+    bins=[0, 10, 25, 50, 100],
+    labels=["New", "Recent", "Old", "VeryOld"]
 )
 
+print("Feature Engineering Completed Successfully")
 
+# ============================================================
+# CHECK MISSING VALUES
+# ============================================================
 
-# Neighborhood Average Price
-
-df["NeighborhoodAveragePrice"] = (
-
-    df.groupby("Neighborhood")["Price"]
-
-    .transform("mean")
-
-)
-
-
-
-# Investment Score
-
-df["InvestmentScore"] = (
-
-    df["NeighborhoodAveragePrice"]
-
-    /
-
-    df["Price"]
-
-).round(2)
-
-
-
-# Value For Money Score
-
-df["ValueForMoneyScore"] = (
-
-    df["SquareFeet"]
-
-    /
-
-    df["Price"]
-
-) * 100000
-
-
-
-print("\nFeature Engineering Completed")
-
-
+print("\nMissing Values")
+print(df.isnull().sum())
 
 # ============================================================
 # LABEL ENCODING
 # ============================================================
 
+print("\nEncoding Categorical Columns...")
 
 categorical_columns = df.select_dtypes(
-
-    include=["object","category"]
-
+    include=["object", "category"]
 ).columns
 
-
+label_encoders = {}
 
 for column in categorical_columns:
 
     encoder = LabelEncoder()
 
     df[column] = encoder.fit_transform(
-
         df[column].astype(str)
-
     )
 
-
+    label_encoders[column] = encoder
 
 print("Categorical Encoding Completed")
-
-
 
 # ============================================================
 # FEATURES AND TARGET
 # ============================================================
 
-
-X = df.drop(
-
-    [
-
-        "Price"
-
-    ],
-
-    axis=1
-
-)
-
-
+X = df.drop("Price", axis=1)
 y = df["Price"]
 
-
+print("\nFeature Matrix Shape :", X.shape)
+print("Target Shape         :", y.shape)
 
 # ============================================================
 # TRAIN TEST SPLIT
 # ============================================================
 
-
 X_train, X_test, y_train, y_test = train_test_split(
-
     X,
-
     y,
-
-    test_size=0.30,
-
+    test_size=0.20,
     random_state=42
-
 )
 
+print("\nTraining Data Shape")
+print(X_train.shape)
 
-
-# ============================================================
-# SAVE DATA
-# ============================================================
-
-
-data_path = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\data"
-
-
-X_train.to_csv(
-
-    os.path.join(data_path,"X_train.csv"),
-
-    index=False
-
-)
-
-
-X_test.to_csv(
-
-    os.path.join(data_path,"X_test.csv"),
-
-    index=False
-
-)
-
-
-y_train.to_csv(
-
-    os.path.join(data_path,"y_train.csv"),
-
-    index=False
-
-)
-
-
-y_test.to_csv(
-
-    os.path.join(data_path,"y_test.csv"),
-
-    index=False
-
-)
-
-
-
-print("\nTraining Data :", X_train.shape)
-
-print("Testing Data  :", X_test.shape)
-
-
-print("\nSaved Files:")
-
-print("✓ X_train.csv")
-
-print("✓ X_test.csv")
-
-print("✓ y_train.csv")
-
-print("✓ y_test.csv")
-
-
-
-print("\n"+"="*70)
-
-print("STEP 2 COMPLETED SUCCESSFULLY")
-
-print("="*70)
+print("\nTesting Data Shape")
+print(X_test.shape)
 
 # ============================================================
 # SAVE TRAIN TEST DATA
 # ============================================================
 
-import os
+output_folder = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\data"
 
-os.makedirs("data", exist_ok=True)
+os.makedirs(output_folder, exist_ok=True)
 
 X_train.to_csv(
-    "data/X_train.csv",
+    os.path.join(output_folder, "X_train.csv"),
     index=False
 )
 
 X_test.to_csv(
-    "data/X_test.csv",
+    os.path.join(output_folder, "X_test.csv"),
     index=False
 )
 
 y_train.to_csv(
-    "data/y_train.csv",
+    os.path.join(output_folder, "y_train.csv"),
     index=False
 )
 
 y_test.to_csv(
-    "data/y_test.csv",
+    os.path.join(output_folder, "y_test.csv"),
     index=False
 )
 
+print("\nTrain-Test Data Saved Successfully")
 
-print("\nTrain Test Data Saved Successfully")
+print("✓ X_train.csv")
+print("✓ X_test.csv")
+print("✓ y_train.csv")
+print("✓ y_test.csv")
 
-print("X_train :", X_train.shape)
-print("X_test  :", X_test.shape)
-print("y_train :", y_train.shape)
-print("y_test  :", y_test.shape)
+print("\nSaved Location:")
+print(output_folder)
+
+print("\n" + "=" * 70)
+print("STEP 2 COMPLETED SUCCESSFULLY")
+print("=" * 70)

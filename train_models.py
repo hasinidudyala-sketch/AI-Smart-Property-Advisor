@@ -1,6 +1,6 @@
 # ============================================================
 # AI SMART PROPERTY ADVISOR
-# STEP 3 - MODEL TRAINING
+# STEP 3 : MODEL TRAINING
 # ============================================================
 
 import pandas as pd
@@ -10,6 +10,7 @@ import joblib
 
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
+
 from sklearn.ensemble import (
     RandomForestRegressor,
     GradientBoostingRegressor,
@@ -23,82 +24,139 @@ from sklearn.metrics import (
 )
 
 
-print("="*70)
+print("=" * 70)
+print("AI SMART PROPERTY ADVISOR")
 print("STEP 3 : MODEL TRAINING")
-print("="*70)
+print("=" * 70)
 
 
 # ============================================================
 # LOAD TRAIN TEST DATA
 # ============================================================
 
+data_path = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\data"
+
+
 X_train = pd.read_csv(
-    "data/X_train.csv"
+    os.path.join(data_path, "X_train.csv")
 )
 
 X_test = pd.read_csv(
-    "data/X_test.csv"
+    os.path.join(data_path, "X_test.csv")
 )
 
+
 y_train = pd.read_csv(
-    "data/y_train.csv"
+    os.path.join(data_path, "y_train.csv")
 )["Price"]
+
 
 y_test = pd.read_csv(
-    "data/y_test.csv"
+    os.path.join(data_path, "y_test.csv")
 )["Price"]
 
 
-print("\nTraining Data :", X_train.shape)
-print("Testing Data  :", X_test.shape)
+
+print("\nTraining Data Shape :", X_train.shape)
+print("Testing Data Shape  :", X_test.shape)
 
 
 
 # ============================================================
-# MODELS
+# DEFINE MODELS
 # ============================================================
 
 models = {
 
+
     "Linear Regression":
+
         LinearRegression(),
 
+
+
     "Decision Tree":
+
         DecisionTreeRegressor(
-            random_state=42
+            random_state=42,
+            max_depth=15
         ),
+
+
 
     "Random Forest":
+
         RandomForestRegressor(
-            n_estimators=200,
-            random_state=42
+
+            n_estimators=300,
+
+            random_state=42,
+
+            n_jobs=-1
+
         ),
+
+
 
     "Gradient Boosting":
+
         GradientBoostingRegressor(
+
+            n_estimators=300,
+
+            learning_rate=0.05,
+
             random_state=42
+
         ),
 
+
+
     "Extra Trees":
+
         ExtraTreesRegressor(
-            n_estimators=200,
-            random_state=42
+
+            n_estimators=300,
+
+            random_state=42,
+
+            n_jobs=-1
+
         )
+
 }
 
 
 
 # ============================================================
-# TRAIN AND EVALUATE
+# TRAIN MODELS
 # ============================================================
+
 
 results = []
 
 
+best_model = None
+
+best_model_name = None
+
+best_score = -1
+
+
+
 for name, model in models.items():
 
-    print("\nTraining :", name)
 
+    print("\n")
+    print("=" * 60)
+
+    print("Training :", name)
+
+    print("=" * 60)
+
+
+
+    # Train
 
     model.fit(
         X_train,
@@ -106,113 +164,156 @@ for name, model in models.items():
     )
 
 
-    prediction = model.predict(
+
+    # Prediction
+
+    train_prediction = model.predict(
+        X_train
+    )
+
+
+    test_prediction = model.predict(
         X_test
     )
 
 
-    r2 = r2_score(
+
+    # Evaluation
+
+    train_r2 = r2_score(
+        y_train,
+        train_prediction
+    )
+
+
+    test_r2 = r2_score(
         y_test,
-        prediction
+        test_prediction
     )
 
 
     mae = mean_absolute_error(
         y_test,
-        prediction
+        test_prediction
     )
 
 
     rmse = np.sqrt(
         mean_squared_error(
             y_test,
-            prediction
+            test_prediction
         )
     )
 
 
-    print("R2 Score :", round(r2,4))
+
+    print("Training R² :", round(train_r2,4))
+
+    print("Testing R²  :", round(test_r2,4))
+
+    print("MAE         :", round(mae,2))
+
+    print("RMSE        :", round(rmse,2))
 
 
-    results.append(
-        [
-            name,
-            r2,
-            mae,
-            rmse,
-            model
-        ]
-    )
+
+    results.append([
+
+        name,
+
+        train_r2,
+
+        test_r2,
+
+        mae,
+
+        rmse
+
+    ])
+
+
+
+
+    # Best Model Selection
+
+    if test_r2 > best_score:
+
+        best_score = test_r2
+
+        best_model = model
+
+        best_model_name = name
 
 
 
 # ============================================================
-# COMPARISON TABLE
+# MODEL COMPARISON
 # ============================================================
+
 
 results_df = pd.DataFrame(
+
     results,
+
     columns=[
+
         "Model",
-        "R2 Score",
+
+        "Training R2",
+
+        "Testing R2",
+
         "MAE",
-        "RMSE",
-        "Model Object"
+
+        "RMSE"
+
     ]
+
 )
+
+
+
+results_df = results_df.sort_values(
+
+    by="Testing R2",
+
+    ascending=False
+
+)
+
 
 
 print("\n")
-print(
-    results_df[
-        [
-            "Model",
-            "R2 Score",
-            "MAE",
-            "RMSE"
-        ]
-    ]
-)
+
+print("=" * 80)
+
+print("MODEL COMPARISON")
+
+print("=" * 80)
+
+
+print(results_df)
 
 
 
 # ============================================================
-# SELECT BEST MODEL
+# BEST MODEL DETAILS
 # ============================================================
 
-results_df = results_df.sort_values(
-    by=[
-        "R2 Score",
-        "RMSE"
-    ],
-    ascending=[
-        False,
-        True
-    ]
-)
 
+print("\n")
 
-best_model_name = results_df.iloc[0]["Model"]
-
-best_model = results_df.iloc[0]["Model Object"]
-
-
-
-print("\n"+"="*70)
+print("=" * 70)
 
 print("BEST MODEL")
 
-print("="*70)
+print("=" * 70)
 
-print("Model :", best_model_name)
 
-print(
-    "R2 Score :",
-    round(
-        results_df.iloc[0]["R2 Score"],
-        4
-    )
-)
+
+print("Model      :", best_model_name)
+
+print("Testing R² :", round(best_score,4))
 
 
 
@@ -220,28 +321,151 @@ print(
 # SAVE MODEL
 # ============================================================
 
+
+model_path = r"C:\Users\HP\Desktop\AI-Smart-Property-Advisor\models"
+
+
 os.makedirs(
-    "models",
+
+    model_path,
+
     exist_ok=True
+
 )
 
+
+
+# Save trained model
 
 joblib.dump(
+
     best_model,
-    "models/best_model.pkl"
+
+    os.path.join(
+        model_path,
+        "best_model.pkl"
+    )
+
 )
 
 
 
-print("\nModel Saved Successfully")
+# Save model name
 
-print(
-    "Location : models/best_model.pkl"
+joblib.dump(
+
+    best_model_name,
+
+    os.path.join(
+        model_path,
+        "best_model_name.pkl"
+    )
+
 )
 
 
-print("="*70)
 
-print("STEP 3 COMPLETED")
+print("\nBest Model Saved Successfully")
 
-print("="*70)
+
+
+# ============================================================
+# FEATURE IMPORTANCE
+# ============================================================
+
+
+if hasattr(best_model, "feature_importances_"):
+
+
+    feature_importance = pd.DataFrame({
+
+        "Feature":
+
+        X_train.columns,
+
+
+        "Importance":
+
+        best_model.feature_importances_
+
+    })
+
+
+
+    feature_importance = feature_importance.sort_values(
+
+        by="Importance",
+
+        ascending=False
+
+    )
+
+
+
+    feature_importance.to_csv(
+
+        os.path.join(
+
+            data_path,
+
+            "feature_importance.csv"
+
+        ),
+
+        index=False
+
+    )
+
+
+
+    print("Feature Importance Saved Successfully")
+
+
+
+# ============================================================
+# SAVE MODEL COMPARISON
+# ============================================================
+
+
+results_df.to_csv(
+
+    os.path.join(
+
+        data_path,
+
+        "model_comparison.csv"
+
+    ),
+
+    index=False
+
+)
+
+
+
+print("Model Comparison Saved Successfully")
+
+
+
+# ============================================================
+# FINAL OUTPUT
+# ============================================================
+
+
+print("\nSaved Files")
+
+print("✓ models/best_model.pkl")
+
+print("✓ models/best_model_name.pkl")
+
+print("✓ data/model_comparison.csv")
+
+print("✓ data/feature_importance.csv")
+
+
+
+print("\n" + "=" * 70)
+
+print("STEP 3 COMPLETED SUCCESSFULLY")
+
+print("=" * 70)
